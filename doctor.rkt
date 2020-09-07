@@ -15,7 +15,7 @@
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
     (let ((user-response (read)))
         (cond 
-	        ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
+            ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
                 (printf "Goodbye, ~a!\n" name)
                 (print '(see you next week)))
             (else (print (reply user-response)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
@@ -56,14 +56,14 @@
 
 ; замена лица во фразе			
 (define (change-person phrase)
-    (many-replace
+    (many-replace-2
         '((am are)
           (are am)
           (i you)
           (me you)
           (mine yours)
           (my your)
-	      (myself yourself)
+          (myself yourself)
           (you i)
           (your my)
           (yours mine)
@@ -71,9 +71,9 @@
         phrase
     )
 )
-  
+
 ; осуществление всех замен в списке lst по ассоциативному списку replacement-pairs
-(define (many-replace replacement-pairs lst)
+(define (many-replace-1 replacement-pairs lst)
     (cond
         ((null? lst) lst)
         (else 
@@ -83,7 +83,29 @@
                         (cadr pat-rep) ; если поиск был удачен, то в начало ответа Доктор пишет замену
                         (car lst) ; иначе в начале ответа помещается начало списка без изменений
                     )
-                    (many-replace replacement-pairs (cdr lst)) ; рекурсивно производятся замены в хвосте списка
+                    (many-replace-1 replacement-pairs (cdr lst)) ; рекурсивно производятся замены в хвосте списка
+                )
+            )
+        )
+    )
+)
+  
+; Упражнение 2
+; осуществление всех замен в списке lst по ассоциативному списку replacement-pairs
+(define (many-replace-2 replacement-pairs lst)
+    (let loop ((new_lst lst) (result '()))
+        (if (null? new_lst)
+            (reverse result)
+            (let ((pat-rep (assoc (car new_lst) replacement-pairs))) ; Доктор ищет первый элемент списка в ассоциативном списке замен
+                (loop
+                    (cdr new_lst)
+                    (cons
+                        (if pat-rep
+                            (cadr pat-rep) ; если поиск был удачен, то в результат Доктор пишет замену
+                            (car new_lst) ; иначе в результат помещается начало списка без изменений
+                        )
+                        result
+                    )
                 )
             )
         )
@@ -99,7 +121,7 @@
           (please continue)
           (it is very common problem)
           (do not stop)
-          (i understand you, buddy))
+          (i understand you))
     )
 )
 

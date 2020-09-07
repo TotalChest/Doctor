@@ -28,3 +28,6 @@ ELIZA (Doctor) is a classic example of the use of Lisp in a sample artificial in
 \- **IM NOT SURE I UNDERSTAND YOU FULLY?**  
 \- goodbye  
 \- **GOODBYE**  
+
+### Run
+To run the project, you can use the [Dr. Racket](https://download.racket-lang.org/)
