@@ -29,5 +29,5 @@ ELIZA (Doctor) is a classic example of the use of Lisp in a sample artificial in
 \- goodbye  
 \- **GOODBYE**  
 
-### Run
+## Run
 To run the project, you can use the [Dr. Racket](https://download.racket-lang.org/)

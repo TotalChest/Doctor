@@ -56,7 +56,7 @@
 
 ; замена лица во фразе			
 (define (change-person phrase)
-    (many-replace-2
+    (many-replace-3
         '((am are)
           (are am)
           (i you)
@@ -80,7 +80,7 @@
             (let ((pat-rep (assoc (car lst) replacement-pairs))) ; Доктор ищет первый элемент списка в ассоциативном списке замен
                 (cons
                     (if pat-rep
-                        (cadr pat-rep) ; если поиск был удачен, то в начало ответа Доктор пишет замену
+                        (cadr pat-rep) ; если поиск был удачен, то делаем замену
                         (car lst) ; иначе в начале ответа помещается начало списка без изменений
                     )
                     (many-replace-1 replacement-pairs (cdr lst)) ; рекурсивно производятся замены в хвосте списка
@@ -101,7 +101,7 @@
                     (cdr new_lst)
                     (cons
                         (if pat-rep
-                            (cadr pat-rep) ; если поиск был удачен, то в результат Доктор пишет замену
+                            (cadr pat-rep) ; если поиск был удачен, то делаем замену
                             (car new_lst) ; иначе в результат помещается начало списка без изменений
                         )
                         result
@@ -109,6 +109,22 @@
                 )
             )
         )
+    )
+)
+
+; Упражнение 3
+; осуществление всех замен в списке lst по ассоциативному списку replacement-pairs
+(define (many-replace-3 replacement-pairs lst)
+    (map
+        (lambda(x)
+            (let ((pat-rep (assoc x replacement-pairs)))
+                (if pat-rep
+                    (cadr pat-rep) ; если поиск был удачен, то делаем замену
+                    x ; иначе в результат помещается начало списка без изменений
+                )
+            )
+        )
+        lst
     )
 )
 
