@@ -11,25 +11,29 @@
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
 (define (doctor-driver-loop name)
-    (newline)
-    (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
-    (let ((user-response (read)))
-        (cond 
-            ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
-                (printf "Goodbye, ~a!\n" name)
-                (print '(see you next week)))
-            (else (print (reply user-response)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
-                (doctor-driver-loop name)
+    (let responses_loop ((name name) (responses '()))
+        (newline)
+        (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
+        (let ((user-response (read)))
+            (cond 
+                ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
+                    (printf "Goodbye, ~a!\n" name)
+                    (print '(see you next week)))
+                (else
+                    (print (reply user-response responses)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
+                    (responses_loop name (cons user-response responses))
+                )
             )
         )
     )
 )
 
 ; генерация ответной реплики по user-response -- реплике от пользователя 
-(define (reply user-response)
-    (case (random 2) ; с равной вероятностью выбирается один из двух способов построения ответа
+(define (reply user-response responses)
+    (case (random (if (null? responses) 2 3))
         ((0) (qualifier-answer user-response)) ; 1й способ
         ((1) (hedge))  ; 2й способ
+        ((2) (history-answer responses))  ; 3й способ
     )
 )
 			
@@ -138,6 +142,14 @@
           (it is very common problem)
           (do not stop)
           (i understand you))
+    )
+)
+
+; Упражнение 4
+(define (history-answer responses)
+    (append
+        '(earlier you said that)
+        (change-person (pick-random responses))
     )
 )
 
