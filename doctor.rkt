@@ -2,10 +2,33 @@
 
 ; основная функция, запускающая "Доктора"
 ; параметр name -- имя пациента
-(define (visit-doctor name)
-    (printf "Hello, ~a!\n" name)
-    (print '(what seems to be the trouble?))
-    (doctor-driver-loop name)
+(define (visit-doctor stop-word clients-count)
+    (let clients-loop ((curr-count clients-count))
+        (if (> curr-count 0)
+            (let ((name (ask-patient-name)))
+                (if (equal? name stop-word)
+                    (clients-loop 0)
+                    (begin
+                        (printf "Hello, ~a!\n" name)
+                        (print '(what seems to be the trouble?))
+                        (doctor-driver-loop name)
+                        (clients-loop (- curr-count 1))
+                    )
+                )
+            )
+            (println '(time to go home))
+        )
+    )
+)
+
+; Упражнение 5
+(define (ask-patient-name)
+    (begin
+        (println '(next!))
+        (println '(who are you?))
+        (print '**)
+        (car (read))
+    ) 
 )
 
 ; цикл диалога Доктора с пациентом
@@ -18,7 +41,7 @@
             (cond 
                 ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
                     (printf "Goodbye, ~a!\n" name)
-                    (print '(see you next week)))
+                    (println '(see you next week)))
                 (else
                     (print (reply user-response responses)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
                     (responses_loop name (cons user-response responses))
@@ -154,4 +177,4 @@
 )
 
 ; запуск Доктора
-(visit-doctor "Sergey")
+(visit-doctor 'stop 3)
