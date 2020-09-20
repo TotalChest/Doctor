@@ -34,7 +34,7 @@
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
 (define (doctor-driver-loop name)
-    (let responses_loop ((name name) (responses '()))
+    (let responses-loop ((name name) (responses '()))
         (newline)
         (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
         (let ((user-response (read)))
@@ -44,7 +44,7 @@
                     (println '(see you next week)))
                 (else
                     (print (reply user-response responses)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
-                    (responses_loop name (cons user-response responses))
+                    (responses-loop name (cons user-response responses))
                 )
             )
         )
@@ -53,10 +53,15 @@
 
 ; генерация ответной реплики по user-response -- реплике от пользователя 
 (define (reply user-response responses)
-    (case (random (if (null? responses) 2 3))
-        ((0) (qualifier-answer user-response)) ; 1й способ
-        ((1) (hedge))  ; 2й способ
-        ((2) (history-answer responses))  ; 3й способ
+    (let ((user-case-words (find-case-words user-response)))
+        (if (null? user-case-words)
+            (case (random (if (null? responses) 2 3))
+                ((0) (qualifier-answer user-response)) ; 1й способ
+                ((1) (hedge))  ; 2й способ
+                ((2) (history-answer responses))  ; 3й способ
+            )
+            (pick-templates user-response user-case-words)
+        )
     )
 )
 			
@@ -173,6 +178,107 @@
     (append
         '(earlier you said that)
         (change-person (pick-random responses))
+    )
+)
+
+; Вернуть список ключевых слов в реплике
+(define (find-case-words user-response)
+    (filter
+        (lambda (x) 
+            (member x get-words)
+        ) 
+        user-response
+    )
+)
+
+; Выбор шаблона по наличию ключевых слов
+(define (pick-templates user-response user-case-words)
+    (let* ((case-word (pick-random user-case-words)) (template (get-template case-word)))
+        (many-replace-3
+            (list (cons '* (cons case-word '())))
+            template
+        )
+    )
+)
+
+; Выбор шаблона по ключевому слову
+(define (get-template case-word)
+    (pick-random
+        (foldl
+            (lambda (x y)
+                (if (member case-word (car x))
+                    (foldl
+                        cons
+                        y
+                        (cadr x)
+                    )
+                    y
+                )
+            
+            )  
+            '()
+            templates
+        )
+    )
+)
+
+; Упражнение 6
+(define templates
+    '(
+        (
+            (depressed suicide exams university)
+            (
+                (when you feel depressed, go out for ice cream)
+                (depression is a disease that can be treated)
+                (don't think bad)
+                (thoughts about * will go away with time)
+	        )
+        )
+        (
+            (mother father parents brother sister uncle ant grandma grandpa )
+            (
+                (tell me more about your * , i want to know all about your *)
+                (why do you feel that way about your * ?)
+                (tell me more about it)
+                (* wants to see you i'm sure)
+	        )
+        )
+        (
+            (university scheme lections)
+	        (
+                (your education is important)
+                (how many time do you spend to learning ?)
+                (* makes you smart)
+                (why are you talking to me about education ?)
+	        )
+        )
+        (
+            (sport swim run football tennis jump basketball)
+	        (
+                (sport is an important part of your life)
+                (do you like * ?)
+                (sport makes you healthy)
+	        )
+        )
+        (
+            (work job employment service profession)
+	        (
+                (do you like your job ?)
+                (what do you do after work ?)
+                (work brings you income)
+	        )
+        )
+    )
+)
+
+; Вернуть линейный список ключевых слов 
+(define get-words
+	(foldl 
+	    (lambda (x y)
+	        (foldl cons y (car x))
+	    )
+	    '()
+        templates
     )
 )
 
