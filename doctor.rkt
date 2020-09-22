@@ -53,14 +53,20 @@
 
 ; генерация ответной реплики по user-response -- реплике от пользователя 
 (define (reply user-response responses)
-    (let ((user-case-words (find-case-words user-response)))
-        (if (null? user-case-words)
-            (case (random (if (null? responses) 2 3))
-                ((0) (qualifier-answer user-response)) ; 1й способ
-                ((1) (hedge))  ; 2й способ
-                ((2) (history-answer responses))  ; 3й способ
+    (let ((keywords (keywords? user-response)) (first (null? responses)))
+        (if keywords
+            (case (random (if first 3 4))
+                ((0) (qualifier-answer user-response))
+                ((1) (hedge))
+                ((2) (pick-template user-response))
+                ((3) (history-answer responses))
+                
             )
-            (pick-templates user-response user-case-words)
+            (case (random (if first 2 3))
+                ((0) (qualifier-answer user-response))
+                ((1) (hedge))
+                ((2) (history-answer responses))
+            ) 
         )
     )
 )
@@ -181,8 +187,18 @@
     )
 )
 
+; Вернуть #t если есть хотя бы одно ключевое слово
+(define (keywords? user-response)
+    (ormap
+        (lambda (x) 
+            (member x get-words)
+        )
+        user-response
+    )
+)
+
 ; Вернуть список ключевых слов в реплике
-(define (find-case-words user-response)
+(define (find-keywords user-response)
     (filter
         (lambda (x) 
             (member x get-words)
@@ -192,21 +208,26 @@
 )
 
 ; Выбор шаблона по наличию ключевых слов
-(define (pick-templates user-response user-case-words)
-    (let* ((case-word (pick-random user-case-words)) (template (get-template case-word)))
+(define (pick-template user-response)
+    (let*
+        (
+        (user-keywords (find-keywords user-response))
+        (keyword (pick-random user-keywords))
+        (template (get-template keyword))
+        )
         (many-replace-3
-            (list (cons '* (cons case-word '())))
+            (list (list '* keyword))
             template
         )
     )
 )
 
 ; Выбор шаблона по ключевому слову
-(define (get-template case-word)
+(define (get-template keyword)
     (pick-random
         (foldl
             (lambda (x y)
-                (if (member case-word (car x))
+                (if (member keyword (car x))
                     (foldl
                         cons
                         y
