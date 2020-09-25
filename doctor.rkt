@@ -53,20 +53,32 @@
 
 ; генерация ответной реплики по user-response -- реплике от пользователя 
 (define (reply user-response responses)
-    (let ((keywords (keywords? user-response)) (first (null? responses)))
-        (if keywords
-            (case (random (if first 3 4))
-                ((0) (qualifier-answer user-response))
-                ((1) (hedge))
-                ((2) (pick-template user-response))
-                ((3) (history-answer responses))
-                
+    (let
+        (
+            (
+                lst
+                (foldl
+                    (lambda (x y)
+                        (if ((car x) user-response responses)
+                            (list
+                                (cons (list-ref x 2) (car y))
+                                (cons (cadr x) (cadr y))
+                            )
+                            y
+                        )
+                    )
+                    (list '() '())
+                    responses-struct
+                )
             )
-            (case (random (if first 2 3))
-                ((0) (qualifier-answer user-response))
-                ((1) (hedge))
-                ((2) (history-answer responses))
-            ) 
+        )
+        (
+            (list-ref
+                (car lst)
+                (pick-random-with-weight (cadr lst))
+            )
+            user-response
+            responses
         )
     )
 )
@@ -244,6 +256,7 @@
 )
 
 ; Упражнение 6
+; Структра ответных реплик по ключевым словам
 (define templates
     '(
         (
@@ -253,7 +266,7 @@
                 (depression is a disease that can be treated)
                 (don't think bad)
                 (thoughts about * will go away with time)
-	        )
+            )
         )
         (
             (mother father parents brother sister uncle ant grandma grandpa )
@@ -262,32 +275,32 @@
                 (why do you feel that way about your * ?)
                 (tell me more about it)
                 (* wants to see you i'm sure)
-	        )
+            )
         )
         (
             (university scheme lections)
-	        (
+            (
                 (your education is important)
                 (how many time do you spend to learning ?)
                 (* makes you smart)
                 (why are you talking to me about education ?)
-	        )
+            )
         )
         (
             (sport swim run football tennis jump basketball)
-	        (
+            (
                 (sport is an important part of your life)
                 (do you like * ?)
                 (sport makes you healthy)
-	        )
+            )
         )
         (
             (work job employment service profession)
-	        (
+            (
                 (do you like your job ?)
                 (what do you do after work ?)
                 (work brings you income)
-	        )
+            )
         )
     )
 )
@@ -300,6 +313,51 @@
 	    )
 	    '()
         templates
+    )
+)
+
+; Упражнение 7
+; Структура данных для стратегий построения реплик
+(define responses-struct
+    (list
+        (list
+            (lambda (reseponse history) #t)
+            1
+            (lambda (reseponse history) (hedge))
+        )
+        (list
+            (lambda (reseponse  history) #t)
+            2
+            (lambda (reseponse history) (qualifier-answer reseponse))
+        )
+        (list
+            (lambda (reseponse history) (not (null? history)))
+            1
+            (lambda (reseponse history) (history-answer history))
+        )
+        (list
+            (lambda (reseponse history) (keywords? reseponse))
+            4
+            (lambda (reseponse history) (pick-template reseponse))
+        )
+    )
+)
+
+; Случайный элемент с учетом весов
+(define (pick-random-with-weight weights)
+    (car
+        (foldl
+            (lambda (x y)
+                (let ((new_y (- (cadr y) x)))
+                    (if (> new_y 0)
+                        (list (+ 1 (car y)) new_y)
+                        (list (car y) new_y)
+                    )
+                )
+            )
+            (list 0 (random  (foldl + 0 weights)))
+            weights
+        )
     )
 )
 
