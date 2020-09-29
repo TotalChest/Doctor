@@ -60,23 +60,17 @@
                 (foldl
                     (lambda (x y)
                         (if ((car x) user-response responses)
-                            (list
-                                (cons (list-ref x 2) (car y))
-                                (cons (cadr x) (cadr y))
-                            )
+                            (cons x y)
                             y
                         )
                     )
-                    (list '() '())
+                    '()
                     responses-struct
                 )
             )
         )
         (
-            (list-ref
-                (car lst)
-                (pick-random-with-weight (cadr lst))
-            )
+            (pick-random-with-weight lst)
             user-response
             responses
         )
@@ -344,19 +338,27 @@
 )
 
 ; Случайный элемент с учетом весов
-(define (pick-random-with-weight weights)
-    (car
-        (foldl
-            (lambda (x y)
-                (let ((new_y (- (cadr y) x)))
-                    (if (> new_y 0)
-                        (list (+ 1 (car y)) new_y)
-                        (list (car y) new_y)
+(define (pick-random-with-weight lst)
+    (let loop
+        (
+            (target
+                (random
+                    (foldl
+                        (lambda (x y)
+                            (+ (cadr x) y)
+                        )
+                        0
+                        lst
                     )
                 )
             )
-            (list 0 (random  (foldl + 0 weights)))
-            weights
+            (cur-lst lst)
+        )
+        (let ((new_target (- target (cadar cur-lst))))
+            (if (>= new_target 0)
+                (loop new_target (cdr cur-lst))
+                (caddar cur-lst)
+            )
         )
     )
 )
