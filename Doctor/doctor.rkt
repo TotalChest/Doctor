@@ -1,4 +1,6 @@
 #lang scheme/base
+(require racket/string)
+
 
 ; основная функция, запускающая "Доктора"
 ; параметр name -- имя пациента
@@ -10,13 +12,13 @@
                     (clients-loop 0)
                     (begin
                         (printf "Hello, ~a!\n" name)
-                        (print '(what seems to be the trouble?))
+                        (printf "what seems to be the trouble?\n")
                         (doctor-driver-loop name)
                         (clients-loop (- curr-count 1))
                     )
                 )
             )
-            (println '(time to go home))
+            (printf "time to go home\n")
         )
     )
 )
@@ -24,10 +26,10 @@
 ; Упражнение 5
 (define (ask-patient-name)
     (begin
-        (println '(next!))
-        (println '(who are you?))
-        (print '**)
-        (car (read))
+        (printf "next!\n")
+        (printf "who are you?\n")
+        (print '>>>)
+        (read-line)
     ) 
 )
 
@@ -35,16 +37,25 @@
 ; параметр name -- имя пациента
 (define (doctor-driver-loop name)
     (let responses-loop ((name name) (responses '()))
-        (newline)
-        (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
-        (let ((user-response (read)))
+        (print '>>>) ; доктор ждёт ввода реплики пациента, приглашением к которому является >>>
+        (let ((user-response (read-line)))
             (cond 
-                ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
+                ((equal? user-response "goodbye") ; реплика "goodbye" служит для выхода из цикла
                     (printf "Goodbye, ~a!\n" name)
-                    (println '(see you next week)))
+                    (printf "see you next week"))
                 (else
-                    (print (reply user-response responses)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
-                    (responses-loop name (cons user-response responses))
+                    (let ((spliting-user-response (preprocess user-response))) ; Предобработка реплики
+                        (printf
+                            (join-string
+                                (reply
+                                    (linear spliting-user-response)
+                                    responses
+                                )
+                            )
+                        )
+                        (newline)
+                        (responses-loop name (foldl cons responses spliting-user-response))
+                    )
                 )
             )
         )
@@ -79,15 +90,15 @@
 			
 ; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала
 (define (qualifier-answer user-response)
-    (append
+    (cons
         (pick-random 
-            '((you seem to think that)
-              (you feel that)
-              (why do you believe that)
-              (why do you say that)
-              (you muttered that)
-              (why are you telling me that)
-              (it seemed to me or you said that))
+            '("you seem to think that"
+              "you feel that"
+              "why do you believe that"
+              "why do you say that"
+              "you muttered that"
+              "why are you telling me that"
+              "it seemed to me or you said that")
         )
         (change-person user-response)
     )
@@ -101,17 +112,17 @@
 ; замена лица во фразе			
 (define (change-person phrase)
     (many-replace-3
-        '((am are)
-          (are am)
-          (i you)
-          (me you)
-          (mine yours)
-          (my your)
-          (myself yourself)
-          (you i)
-          (your my)
-          (yours mine)
-          (yourself myself))
+        '(("am" "are")
+          ("are" "am")
+          ("i" "you")
+          ("me" "you")
+          ("mine" "yours")
+          ("my" "your")
+          ("myself" "yourself")
+          ("you" "i")
+          ("your" "my")
+          ("yours" "mine")
+          ("yourself" "myself"))
         phrase
     )
 )
@@ -175,20 +186,20 @@
 ; 2й способ генерации ответной реплики -- случайный выбор одной из заготовленных фраз, не связанных с репликой пользователя
 (define (hedge)
     (pick-random 
-        '((please go on)
-          (many people have the same sorts of feelings)
-          (many of my patients have told me the same thing)
-          (please continue)
-          (it is very common problem)
-          (do not stop)
-          (i understand you))
+        '(("please go on")
+          ("many people have the same sorts of feelings")
+          ("many of my patients have told me the same thing")
+          ("please continue")
+          ("it is very common problem")
+          ("do not stop")
+          ("i understand you"))
     )
 )
 
 ; Упражнение 4
 (define (history-answer responses)
-    (append
-        '(earlier you said that)
+    (cons
+        "earlier you said that"
         (change-person (pick-random responses))
     )
 )
@@ -222,7 +233,7 @@
         (template (get-template keyword))
         )
         (many-replace-3
-            (list (list '* keyword))
+            (list (list "*" keyword))
             template
         )
     )
@@ -254,46 +265,46 @@
 (define templates
     '(
         (
-            (depressed suicide exams university)
+            ("depressed" "suicide" "exams" "university")
             (
-                (when you feel depressed, go out for ice cream)
-                (depression is a disease that can be treated)
-                (don't think bad)
-                (thoughts about * will go away with time)
+                ("when you feel depressed, go out for ice cream")
+                ("depression is a disease that can be treated")
+                ("don't think bad")
+                ("thoughts about" "*" "will go away with time")
             )
         )
         (
-            (mother father parents brother sister uncle ant grandma grandpa )
+            ("mother" "father" "parents" "brother" "sister" "uncle" "ant" "grandma" "grandpa")
             (
-                (tell me more about your * , i want to know all about your *)
-                (why do you feel that way about your * ?)
-                (tell me more about it)
-                (* wants to see you i'm sure)
+                ("tell me more about your" "*" ", i want to know all about your" "*")
+                ("why do you feel that way about your" "*" "?")
+                ("tell me more about it")
+                ("*" "wants to see you i'm sure")
             )
         )
         (
-            (university scheme lections)
+            ("university" "scheme" "lections")
             (
-                (your education is important)
-                (how many time do you spend to learning ?)
-                (* makes you smart)
-                (why are you talking to me about education ?)
+                ("your education is important")
+                ("how many time do you spend to learning?")
+                ("*" "makes you smart")
+                ("why are you talking to me about education?")
             )
         )
         (
-            (sport swim run football tennis jump basketball)
+            ("sport" "swim" "run" "football" "tennis" "jump" "basketball")
             (
-                (sport is an important part of your life)
-                (do you like * ?)
-                (sport makes you healthy)
+                ("sport is an important part of your life")
+                ("do you like" "*" "?")
+                ("sport makes you healthy")
             )
         )
         (
-            (work job employment service profession)
+            ("work" "job" "employment" "service" "profession")
             (
-                (do you like your job ?)
-                (what do you do after work ?)
-                (work brings you income)
+                ("do you like your job?")
+                ("what do you do after work?")
+                ("work brings you income")
             )
         )
     )
@@ -363,5 +374,67 @@
     )
 )
 
+; Весна
+; Создание списка списков из реплики
+(define (preprocess user-response)
+    (foldl 
+        (lambda (x y) 
+            (let
+                (
+                    (sentence
+                        (filter
+                            (lambda (z) (not (equal? z "")))
+                            (map
+                                string-downcase
+                                (regexp-split #px"\\s+" x) ; Разделяем по пробельным символам
+                            )                        
+                        )
+                    )
+                )
+                (if (null? sentence) y (cons sentence y))
+            )
+        )
+        '()
+        (regexp-split
+            #px"[\\.\\?!]" ; Разделение по предложенииям
+           (regexp-replace*
+                #px"([;,:\\(\\)])" ; Добавление разделителей для знаков
+                (regexp-replace*
+                    #px"[^\\w\\.\\?!;,:\\s\\(\\)]+" ; Очистка от лишних символов
+                    user-response
+                    ""
+                )
+                " \\1 "
+            )
+        )
+    )
+)
+
+; Объединение списка в предложение
+(define (join-string lst)
+    (regexp-replace*
+        #px"([\\(]) "
+        (regexp-replace*
+            #px" ([;,:\\)])"
+            (string-join lst)
+            "\\1"
+        )
+        "\\1"
+    )        
+)
+
+; Линеризация списка списков
+(define (linear lst)
+    (reverse
+        (foldl
+            (lambda (x y)
+                (foldl cons y x)
+            )
+            '()
+            lst    
+        )
+    )
+)
+
 ; запуск Доктора
-(visit-doctor 'stop 3)
+(visit-doctor "stop" 3)
