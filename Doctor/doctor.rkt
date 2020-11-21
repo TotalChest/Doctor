@@ -1,5 +1,6 @@
 #lang scheme/base
 (require racket/string)
+(require 2htdp/batch-io)
 
 
 ; основная функция, запускающая "Доктора"
@@ -326,24 +327,39 @@
 (define responses-struct
     (list
         (list
-            (lambda (reseponse history) #t)
+            (lambda (response history) #t)
             1
-            (lambda (reseponse history) (hedge))
+            (lambda (response history) (hedge))
         )
         (list
-            (lambda (reseponse  history) #t)
+            (lambda (response  history) #t)
             2
-            (lambda (reseponse history) (qualifier-answer reseponse))
+            (lambda (response history) (qualifier-answer response))
         )
         (list
-            (lambda (reseponse history) (not (null? history)))
+            (lambda (response history) (not (null? history)))
             1
-            (lambda (reseponse history) (history-answer history))
+            (lambda (response history) (history-answer history))
         )
         (list
-            (lambda (reseponse history) (keywords? reseponse))
-            4
-            (lambda (reseponse history) (pick-template reseponse))
+            (lambda (response history) (keywords? response))
+            20
+            (lambda (response history) (pick-template response))
+        )
+        (list
+            (lambda (response history) #t)
+            5
+            (lambda (response history) (forward-generation))
+        )
+        (list
+            (lambda (response history) #t)
+            5
+            (lambda (response history) (backward-generation))
+        )
+        (list
+            (lambda (response history) #t)
+            20
+            (lambda (response history) (advanced-generation response))
         )
     )
 )
@@ -384,10 +400,7 @@
                     (sentence
                         (filter
                             (lambda (z) (not (equal? z "")))
-                            (map
-                                string-downcase
-                                (regexp-split #px"\\s+" x) ; Разделяем по пробельным символам
-                            )                        
+                            (regexp-split #px"\\s+" x) ; Разделяем по пробельным символам   
                         )
                     )
                 )
@@ -397,7 +410,7 @@
         '()
         (regexp-split
             #px"[\\.\\?!]" ; Разделение по предложенииям
-           (regexp-replace*
+            (regexp-replace*
                 #px"([;,:\\(\\)])" ; Добавление разделителей для знаков
                 (regexp-replace*
                     #px"[^\\w\\.\\?!;,:\\s\\(\\)]+" ; Очистка от лишних символов
@@ -435,6 +448,140 @@
         )
     )
 )
+
+
+; Стратегия прямой генерации ответа
+(define (forward-generation)
+    (let ((start (pick-random-with-weight starts)))
+        (append start (forward-generation-2 start))
+    )
+)
+(define (forward-generation-2 start)
+    (let loop ((result '()) (prev start))
+        (let ((last-word (pick-random-with-weight (hash-ref forward-graph prev (list(list 'None 1 "$NONE$"))))))
+            (if (or (equal? last-word ".") (equal? last-word "$NONE$"))
+                result
+                (loop
+                    (append result (list last-word))
+                    (append (cdr prev) (list last-word))
+                )
+            )
+        )
+    )
+)
+
+; Стратегия обратной генерации ответа
+(define (backward-generation)
+    (let ((end (pick-random-with-weight ends)))
+         (append (backward-generation-2 end) end)
+    )
+)
+(define (backward-generation-2 end)
+    (let loop ((result '()) (post end))
+        (let ((first-word (pick-random-with-weight (hash-ref backward-graph post (list(list 'None 1 "$NONE$"))))))
+            (if (or (equal? first-word ".") (equal? first-word "$NONE$"))
+                result
+                (loop
+                    (append (list first-word) result)
+                    (append (list first-word) (reverse (cdr (reverse post))))
+                )
+            )
+        )
+    )
+)
+
+; Двухсторонняя стратерия генерации ответа
+(define (advanced-generation response)
+    (define (num-members keys)
+        (let loop ((keys keys) (res 0))
+            (if (null? keys)
+                res
+                (if (member (car keys) response)
+                    (loop (cdr keys) (+ res 1))
+                    (loop (cdr keys) res)
+                )
+            )
+        )
+    )
+    (define (freq-keys)
+        (let loop ((keys (hash-keys forward-graph)) (result '()))
+            (if (null? keys)
+                (if (null? result)
+                    (list (list 'None 1 (pick-random (hash-keys forward-graph))))
+                    result
+                )
+                (let ((num (num-members (car keys))))
+                    (if (> num 0)
+                        (loop (cdr keys) (cons (list 'None num (car keys)) result))
+                        (loop (cdr keys) result)
+                    )
+                )
+            )
+        )
+    )
+    (let ((start (pick-random-with-weight (freq-keys))))
+        (append (backward-generation-2 start) start (forward-generation-2 start))
+    )
+)
+
+
+; Чтение начальных и конечных реплик из n-грамм с частотами
+(define (read-struct file)
+    (let ((prepare-string (substring (read-file file) 2)))
+        (map
+            (lambda (x)
+                (let ((lst (regexp-split #px" " x)))
+                    (list 'None (string->number (car lst)) (cdr lst))
+                )
+            )
+            (regexp-split
+                #px" \\| "
+                prepare-string
+            )
+        )
+    )
+)
+
+; Чтение графов из n-грамм с частотами
+(define (read-graph file)
+    (let ((prepare-string (substring (read-file file) 2)) (hash (make-hash)))
+        (map
+            (lambda (x)
+                (let ((lst (regexp-split #px" \\$ " x)))
+                    (hash-set!
+                        hash
+                        (regexp-split #px" " (car lst))
+                        (let loop ((words (cdr lst)) (result '()))
+                            (if (null? words)
+                                result
+                                (let ((list-words (regexp-split #px" " (car words))))
+                                    (loop (cdr words) (cons (list
+                                        'None
+                                        (string->number (cadr list-words))
+                                        (car list-words))
+                                    result))
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+            (regexp-split
+                #px" \\| "
+                prepare-string
+            )
+        )
+        hash
+    )
+)
+
+; Чтение начальных и конечных реплик
+(define starts (read-struct "Graphs/starting.txt"))
+(define ends (read-struct "Graphs/ending.txt"))
+
+; Чтение графов
+(define forward-graph (read-graph "Graphs/forward-graph.txt"))
+(define backward-graph (read-graph "Graphs/backward-graph.txt"))
 
 ; запуск Доктора
 (visit-doctor "stop" 3)
