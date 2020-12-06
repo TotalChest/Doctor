@@ -55,7 +55,7 @@
                             )
                         )
                         (newline)
-                        (responses-loop name (foldl cons responses spliting-user-response))
+                        (responses-loop name (append responses spliting-user-response))
                     )
                 )
             )
@@ -333,7 +333,7 @@
         )
         (list
             (lambda (response  history) #t)
-            2
+            1
             (lambda (response history) (qualifier-answer response))
         )
         (list
@@ -343,22 +343,22 @@
         )
         (list
             (lambda (response history) (keywords? response))
-            20
+            10
             (lambda (response history) (pick-template response))
         )
         (list
             (lambda (response history) #t)
-            5
+            2
             (lambda (response history) (forward-generation))
         )
         (list
             (lambda (response history) #t)
-            5
+            2
             (lambda (response history) (backward-generation))
         )
         (list
             (lambda (response history) #t)
-            20
+            40
             (lambda (response history) (advanced-generation response))
         )
     )

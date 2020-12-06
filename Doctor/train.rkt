@@ -4,8 +4,8 @@
 (require racket/format)
 
 
-(define N 4)
-(define text (read-file "Texts/test.txt"))
+(define N 5)
+(define text (read-file "Texts/bad.txt"))
 
 
 ; Фильтрация текста и разбиение на лексемы
